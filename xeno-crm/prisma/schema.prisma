@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  phone      String?
+  channel    String   @default("whatsapp") // preferred channel
+  city       String?
+  createdAt  DateTime @default(now())
+  orders     Order[]
+  messages   Message[]
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id])
+  amount      Float
+  items       String[] // array of product names
+  createdAt   DateTime @default(now())
+}
+
+model Segment {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  filterQuery Json       // stores the parsed filter rules
+  nlQuery     String?    // original natural language query from marketer
+  createdAt   DateTime   @default(now())
+  campaigns   Campaign[]
+}
+
+model Campaign {
+  id          String    @id @default(cuid())
+  name        String
+  segmentId   String
+  segment     Segment   @relation(fields: [segmentId], references: [id])
+  message     String    // the message body
+  channel     String    // whatsapp | sms | email
+  status      String    @default("draft") // draft | sending | sent
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+  messages    Message[]
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  campaignId  String
+  campaign    Campaign  @relation(fields: [campaignId], references: [id])
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  channel     String
+  status      String    @default("pending") // pending | sent | delivered | failed | opened | read | clicked
+  sentAt      DateTime?
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+}
